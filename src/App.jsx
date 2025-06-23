@@ -41,7 +41,7 @@ export default function App() {
   };
 
   return (
-    <TonConnectUIProvider manifestUrl="https://botcasino.vercel.app/public/tonconnect-manifest.json">
+    <TonConnectUIProvider manifestUrl="https://botcasino.vercel.app/tonconnect-manifest.json">
       <div style={{ padding: 20 }}>
         <h2>Купить монеты</h2>
         {tgUser && (
