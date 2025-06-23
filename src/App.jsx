@@ -28,7 +28,9 @@ const App = () => {
     <div style={{ padding: "20px" }}>
       <header style={{ display: "flex", justifyContent: "space-between" }}>
         <h1>My React App with TON Connect</h1>
-        <TonConnectButton />
+        <div style={{ width: "fit-content" }}>
+          <TonConnectButton />
+        </div>
       </header>
 
       {userData ? (
