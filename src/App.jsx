@@ -101,7 +101,7 @@ export default function App() {
         />
 
         <br />
-        {/* Кнопка для выполнения оплаты */}
+        {/* Кнопка для выполнения оплыыыаты */}
         <button
           onClick={handleBuy}
           style={{ marginTop: 10 }}
