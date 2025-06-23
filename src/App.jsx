@@ -7,6 +7,7 @@ const COIN_RATE = 50; // 50 монет за 0.1 TON
 export default function App() {
   const [amount, setAmount] = useState(0);
   const [tgUser, setTgUser] = useState(null);
+  const [walletConnected, setWalletConnected] = useState(false);
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
@@ -20,6 +21,16 @@ export default function App() {
         );
       }
     }
+
+    // Проверяем, подключен ли кошелек
+    const checkWalletConnection = async () => {
+      if (window.tonConnectUI) {
+        const connected = await window.tonConnectUI.isConnected();
+        setWalletConnected(connected);
+      }
+    };
+
+    checkWalletConnection();
   }, []); // Пустой массив, чтобы этот код выполнялся только один раз при загрузке компонента
 
   const handleBuy = async () => {
@@ -36,6 +47,7 @@ export default function App() {
         throw new Error("TonConnectUI не загружен.");
       }
 
+      // Отправляем транзакцию
       await window.tonConnectUI.sendTransaction({
         validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [
@@ -70,9 +82,23 @@ export default function App() {
           onChange={(e) => setAmount(Number(e.target.value))}
         />
         <p>К оплате: {(amount / COIN_RATE).toFixed(4)} TON</p>
+
+        {walletConnected ? (
+          <p>Кошелек подключен!</p>
+        ) : (
+          <p>Кошелек не подключен. Пожалуйста, подключите его.</p>
+        )}
+
+        {/* Кнопка подключения кошелька */}
         <TonConnectButton />
+
         <br />
-        <button onClick={handleBuy} style={{ marginTop: 10 }}>
+        {/* Кнопка для выполнения оплаты */}
+        <button
+          onClick={handleBuy}
+          style={{ marginTop: 10 }}
+          disabled={!walletConnected}
+        >
           Оплатить
         </button>
       </div>
