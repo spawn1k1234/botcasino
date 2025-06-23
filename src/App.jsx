@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { TonConnectButton, TonConnectUIProvider } from "@tonconnect/ui-react";
+import {
+  TonConnectButton,
+  TonConnectUIProvider,
+  useTonConnectUI,
+} from "@tonconnect/ui-react";
 
 const TON_ADDRESS = "UQDNqYE7mTZnTRKdyZuu5ITXVJEnPt4co-kSqBNZ_oHZn1Q7";
 const COIN_RATE = 50; // 50 монет за 0.1 TON
@@ -7,6 +11,7 @@ const COIN_RATE = 50; // 50 монет за 0.1 TON
 export default function App() {
   const [amount, setAmount] = useState(0);
   const [tgUser, setTgUser] = useState(null);
+  const [tonConnectUI] = useTonConnectUI();
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
@@ -24,8 +29,8 @@ export default function App() {
 
     const nanoTon = Math.floor((amount / COIN_RATE) * 1e9);
 
-    window.tonConnectUI
-      .sendTransaction({
+    try {
+      await tonConnectUI.sendTransaction({
         validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [
           {
@@ -34,8 +39,10 @@ export default function App() {
             payload: `uid:${tgUser.id}`,
           },
         ],
-      })
-      .catch((err) => alert("Ошибка: " + err.message));
+      });
+    } catch (err) {
+      alert("Ошибка: " + err.message);
+    }
   };
 
   return (
