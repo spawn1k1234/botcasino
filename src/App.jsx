@@ -1,10 +1,19 @@
-import { useTonConnectUI } from "@tonconnect/ui-react";
+import { useEffect, useState } from "react";
+import {
+  TonConnectButton,
+  TonConnectUIProvider,
+  useTonConnectUI,
+} from "@tonconnect/ui-react";
 
-const App = () => {
+const TON_ADDRESS = "UQAEbqdLmHY-gxbUG9eqeldLX8yQDjUDOo1R5NHYjlpIlGet";
+const COIN_RATE = 50; // 50 монет за 0.1 TON
+
+export default function App() {
   const [amount, setAmount] = useState(0);
   const [tgUser, setTgUser] = useState(null);
   const [walletConnected, setWalletConnected] = useState(false);
 
+  // Использование хука для получения экземпляра TonConnectUI
   const tonConnectUI = useTonConnectUI();
 
   useEffect(() => {
@@ -103,4 +112,4 @@ const App = () => {
       </div>
     </TonConnectUIProvider>
   );
-};
+}
