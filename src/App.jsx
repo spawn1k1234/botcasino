@@ -1,35 +1,32 @@
-import { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   TonConnectButton,
   TonConnectUIProvider,
   useTonConnectUI,
-} from "@tonconnect/ui-react";
+} from "@tonconnect/ui-react"; // Импортируем необходимые компоненты
 
 const TON_ADDRESS = "UQAEbqdLmHY-gxbUG9eqeldLX8yQDjUDOo1R5NHYjlpIlGet";
 const COIN_RATE = 50; // 50 монет за 0.1 TON
 
-export default function App() {
+function App() {
   const [amount, setAmount] = useState(0);
   const [tgUser, setTgUser] = useState(null);
   const [walletConnected, setWalletConnected] = useState(false);
 
-  // Использование хука для получения экземпляра TonConnectUI
+  // Инициализация TonConnect UI
   const tonConnectUI = useTonConnectUI();
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
     if (tg) {
-      tg.ready(); // Это может быть ненужно, если WebApp уже готов.
+      tg.ready(); // Подготовка Telegram WebApp
       if (tg.initDataUnsafe?.user) {
         setTgUser(tg.initDataUnsafe.user);
       } else {
-        console.error(
-          "Ошибка: Не удалось получить данные пользователя Telegram."
-        );
+        console.error("Не удалось получить данные пользователя Telegram.");
       }
     }
 
-    // Проверяем, подключен ли кошелек
     const checkWalletConnection = async () => {
       if (tonConnectUI) {
         const connected = await tonConnectUI.isConnected();
@@ -42,11 +39,11 @@ export default function App() {
 
   const handleBuy = async () => {
     if (!tgUser || !amount) {
-      alert("Введите число и зайдите через Telegram");
+      alert("Введите число и зайдите через Telegram.");
       return;
     }
 
-    const nanoTon = Math.floor((amount / COIN_RATE) * 1e9);
+    const nanoTon = Math.floor((amount / COIN_RATE) * 1e9); // Переводим в нанотонны
 
     try {
       if (!tonConnectUI) {
@@ -94,14 +91,12 @@ export default function App() {
           <p>Кошелек не подключен. Пожалуйста, подключите его.</p>
         )}
 
-        {/* Кнопка подключения кошелька */}
         <TonConnectButton
           onConnect={() => setWalletConnected(true)}
           onDisconnect={() => setWalletConnected(false)}
         />
 
         <br />
-        {/* Кнопка для выполнения оплыыыаты */}
         <button
           onClick={handleBuy}
           style={{ marginTop: 10 }}
@@ -113,3 +108,5 @@ export default function App() {
     </TonConnectUIProvider>
   );
 }
+
+export default App;
