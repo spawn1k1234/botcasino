@@ -10,11 +10,17 @@ export default function App() {
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
-    tg?.ready();
-    if (tg?.initDataUnsafe?.user) {
-      setTgUser(tg.initDataUnsafe.user);
+    if (tg) {
+      tg.ready(); // Это может быть ненужно, если WebApp уже готов.
+      if (tg.initDataUnsafe?.user) {
+        setTgUser(tg.initDataUnsafe.user);
+      } else {
+        console.error(
+          "Ошибка: Не удалось получить данные пользователя Telegram."
+        );
+      }
     }
-  }, []);
+  }, []); // Пустой массив, чтобы этот код выполнялся только один раз при загрузке компонента
 
   const handleBuy = async () => {
     if (!tgUser || !amount) {
@@ -25,6 +31,11 @@ export default function App() {
     const nanoTon = Math.floor((amount / COIN_RATE) * 1e9);
 
     try {
+      // Убедитесь, что window.tonConnectUI существует
+      if (!window.tonConnectUI) {
+        throw new Error("TonConnectUI не загружен.");
+      }
+
       await window.tonConnectUI.sendTransaction({
         validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [
@@ -35,7 +46,10 @@ export default function App() {
           },
         ],
       });
+
+      alert("Транзакция успешно отправлена!");
     } catch (err) {
+      console.error("Ошибка при отправке транзакции:", err);
       alert("Ошибка: " + err.message);
     }
   };
