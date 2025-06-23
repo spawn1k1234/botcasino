@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { TonConnect } from "@tonconnect/sdk";
 
+// Инициализация TonConnect
 const connector = new TonConnect();
 
 export default function App() {
@@ -46,7 +47,7 @@ export default function App() {
       setLoading(true);
 
       // Подключаем кошелек
-      await connector.connectWallet();
+      await connector.connect();
 
       const tx = {
         validUntil: Math.floor(Date.now() / 1000) + 600,
