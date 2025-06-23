@@ -11,7 +11,7 @@ const COIN_RATE = 50; // 50 монет за 0.1 TON
 export default function App() {
   const [amount, setAmount] = useState(0);
   const [tgUser, setTgUser] = useState(null);
-  const [tonConnectUI] = useTonConnectUI();
+  const { tonConnectUI, connected } = useTonConnectUI(); // Обязательно получи доступ к tonConnectUI
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
@@ -66,6 +66,13 @@ export default function App() {
         <button onClick={handleBuy} style={{ marginTop: 10 }}>
           Оплатить
         </button>
+
+        {/* Показать информацию о подключении */}
+        {connected ? (
+          <p>Подключение к кошельку установлено</p>
+        ) : (
+          <p>Пожалуйста, подключите свой кошелек</p>
+        )}
       </div>
     </TonConnectUIProvider>
   );
