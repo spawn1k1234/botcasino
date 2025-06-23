@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { TonConnectButton, TonConnectUIProvider } from "@tonconnect/ui-react";
 
-const TON_ADDRESS = "UQDNqYE7mTZnTRKdyZuu5ITXVJEnPt4co-kSqBNZ_oHZn1Q7";
+const TON_ADDRESS = "UQAEbqdLmHY-gxbUG9eqeldLX8yQDjUDOo1R5NHYjlpIlGet";
 const COIN_RATE = 50; // 50 монет за 0.1 TON
 
 export default function App() {
