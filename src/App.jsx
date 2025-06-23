@@ -1,112 +1,75 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  TonConnectButton,
   TonConnectUIProvider,
+  TonConnectButton,
+  useTonAddress,
+  useTonWallet,
   useTonConnectUI,
-} from "@tonconnect/ui-react"; // Импортируем необходимые компоненты
+} from "@tonconnect/ui-react";
 
-const TON_ADDRESS = "UQAEbqdLmHY-gxbUG9eqeldLX8yQDjUDOo1R5NHYjlpIlGet";
-const COIN_RATE = 50; // 50 монет за 0.1 TON
+const App = () => {
+  const [tonConnectUI, setTonConnectUI] = useTonConnectUI();
+  const userFriendlyAddress = useTonAddress();
+  const rawAddress = useTonAddress(false);
+  const wallet = useTonWallet();
 
-function App() {
-  const [amount, setAmount] = useState(0);
-  const [tgUser, setTgUser] = useState(null);
-  const [walletConnected, setWalletConnected] = useState(false);
-
-  // Инициализация TonConnect UI
-  const tonConnectUI = useTonConnectUI();
+  // Используем useState для хранения данных пользователя
+  const [userData, setUserData] = useState(null);
 
   useEffect(() => {
-    const tg = window.Telegram?.WebApp;
-    if (tg) {
-      tg.ready(); // Подготовка Telegram WebApp
-      if (tg.initDataUnsafe?.user) {
-        setTgUser(tg.initDataUnsafe.user);
-      } else {
-        console.error("Не удалось получить данные пользователя Telegram.");
-      }
-    }
-
-    const checkWalletConnection = async () => {
-      if (tonConnectUI) {
-        const connected = await tonConnectUI.isConnected();
-        setWalletConnected(connected);
-      }
-    };
-
-    checkWalletConnection();
-  }, [tonConnectUI]);
-
-  const handleBuy = async () => {
-    if (!tgUser || !amount) {
-      alert("Введите число и зайдите через Telegram.");
-      return;
-    }
-
-    const nanoTon = Math.floor((amount / COIN_RATE) * 1e9); // Переводим в нанотонны
-
-    try {
-      if (!tonConnectUI) {
-        throw new Error("TonConnectUI не загружен.");
-      }
-
-      await tonConnectUI.sendTransaction({
-        validUntil: Math.floor(Date.now() / 1000) + 600,
-        messages: [
-          {
-            address: TON_ADDRESS,
-            amount: nanoTon.toString(),
-            payload: `uid:${tgUser.id}`,
-          },
-        ],
+    if (wallet) {
+      setUserData({
+        address: wallet.account.address,
+        device: wallet.device.appName,
+        provider: wallet.provider,
+        walletName: wallet.name,
+        walletImage: wallet.imageUrl,
       });
-
-      alert("Транзакция успешно отправлена!");
-    } catch (err) {
-      console.error("Ошибка при отправке транзакции:", err);
-      alert("Ошибка: " + err.message);
     }
-  };
+  }, [wallet]);
 
   return (
-    <TonConnectUIProvider manifestUrl="https://botcasino.vercel.app/tonconnect-manifest.json">
-      <div style={{ padding: 20 }}>
-        <h2>Купить монеты</h2>
-        {tgUser && (
-          <p>
-            Привет, {tgUser.first_name} @{tgUser.username}
-          </p>
-        )}
-        <input
-          type="number"
-          placeholder="Сколько монет?"
-          value={amount}
-          onChange={(e) => setAmount(Number(e.target.value))}
-        />
-        <p>К оплате: {(amount / COIN_RATE).toFixed(4)} TON</p>
+    <TonConnectUIProvider manifestUrl="https://your-app-url/tonconnect-manifest.json">
+      <div style={{ padding: "20px" }}>
+        <header style={{ display: "flex", justifyContent: "space-between" }}>
+          <h1>My React App with TON Connect</h1>
+          <TonConnectButton />
+        </header>
 
-        {walletConnected ? (
-          <p>Кошелек подключен!</p>
+        {userData ? (
+          <div>
+            <h2>User Wallet Info:</h2>
+            <p>
+              <strong>Address (user-friendly):</strong> {userFriendlyAddress}
+            </p>
+            <p>
+              <strong>Raw Address:</strong> {rawAddress}
+            </p>
+            <p>
+              <strong>Wallet Name:</strong> {userData.walletName}
+            </p>
+            <p>
+              <strong>Connected Device:</strong> {userData.device}
+            </p>
+            <p>
+              <strong>Provider:</strong> {userData.provider}
+            </p>
+            {userData.walletImage && (
+              <img
+                src={userData.walletImage}
+                alt={userData.walletName}
+                style={{ width: "50px", height: "50px" }}
+              />
+            )}
+          </div>
         ) : (
-          <p>Кошелек не подключен. Пожалуйста, подключите его.</p>
+          <p>Connect your wallet to see your information.</p>
         )}
 
-        <TonConnectButton
-          onConnect={() => setWalletConnected(true)}
-          onDisconnect={() => setWalletConnected(false)}
-        />
-
-        <br />
-        <button
-          onClick={handleBuy}
-          style={{ marginTop: 10 }}
-          disabled={!walletConnected}
-        >
-          Оплатить
-        </button>
+        <button onClick={() => tonConnectUI.openModal()}>Connect Wallet</button>
       </div>
     </TonConnectUIProvider>
   );
-}
+};
 
 export default App;
