@@ -1,56 +1,100 @@
 import { useEffect, useState } from "react";
+import { TonConnect } from "@tonconnect/sdk";
 
-function App() {
+const connector = new TonConnect();
+
+export default function App() {
   const [user, setUser] = useState(null);
+  const [connected, setConnected] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const TON_ADDRESS = "UQDNqYE7mTZnTRKdyZuu5ITXVJEnPt4co-kSqBNZ_oHZn1Q7";
+  const COIN_AMOUNT = 0.1 * 10 ** 9; // 0.1 TON in nanotons
 
   useEffect(() => {
-    const initDataUnsafe = window.Telegram.WebApp.initDataUnsafe;
-    const tgUser = initDataUnsafe?.user;
-
+    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
     if (tgUser) {
-      setUser({
-        id: tgUser.id,
-        first_name: tgUser.first_name,
-        last_name: tgUser.last_name,
-        username: tgUser.username,
-        photo_url: tgUser.photo_url,
-        phone_number: initDataUnsafe?.user?.phone_number, // может быть недоступен
-      });
+      setUser(tgUser);
     }
-
     window.Telegram.WebApp.ready();
+
+    connector.restoreConnection().then(() => {
+      setConnected(connector.connected);
+    });
+
+    connector.onStatusChange((wallet) => {
+      setConnected(wallet !== null);
+    });
   }, []);
 
-  if (!user) {
-    return <div>Загрузка...</div>;
-  }
+  const handleBuy = async () => {
+    if (!user) {
+      alert("Не удалось получить данные пользователя!");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Подключаем кошелек через TonConnect
+      await connector.connectWallet();
+
+      // Генерация транзакции для отправки TON
+      const tx = {
+        validUntil: Math.floor(Date.now() / 1000) + 600,
+        messages: [
+          {
+            address: TON_ADDRESS,
+            amount: COIN_AMOUNT.toString(),
+            payload: `uid:${user.id}`, // Используем user.id для идентификации
+          },
+        ],
+      };
+
+      // Отправляем транзакцию
+      await connector.sendTransaction(tx);
+      alert("✅ Оплата отправлена. Монеты скоро поступят!");
+
+      // Получаем баланс пользователя сразу после транзакции
+      const res = await fetch(
+        `https://your-vercel-api.vercel.app/balance/${user.id}`
+      );
+      const { balance } = await res.json();
+      alert(`✅ Вам начислено ${balance} монет!`);
+    } catch (err) {
+      alert("❌ Ошибка: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="app" style={{ padding: 20, fontFamily: "sans-serif" }}>
-      <h1>Привет, {user.first_name}!</h1>
-      {user.photo_url && (
-        <img
-          src={user.photo_url}
-          alt="User"
-          style={{ borderRadius: "50%", width: 100, height: 100 }}
-        />
-      )}
-      <p>
-        <strong>Имя:</strong> {user.first_name} {user.last_name}
-      </p>
-      <p>
-        <strong>Username:</strong> @{user.username}
-      </p>
-      {user.phone_number && (
+    <div style={{ padding: 20, fontFamily: "sans-serif", textAlign: "center" }}>
+      <h2>Купить 50 монет</h2>
+      <p>Цена: 0.1 TON (~$0.14)</p>
+
+      {user && (
         <p>
-          <strong>Телефон:</strong> {user.phone_number}
+          Вы: <strong>{user.first_name}</strong> @{user.username}
         </p>
       )}
-      <p>
-        <strong>ID:</strong> {user.id}
-      </p>
+
+      <button
+        onClick={handleBuy}
+        disabled={loading}
+        style={{
+          padding: "10px 20px",
+          fontSize: "16px",
+          background: "#04befe",
+          color: "white",
+          border: "none",
+          borderRadius: "10px",
+          cursor: "pointer",
+          marginTop: 20,
+        }}
+      >
+        {loading ? "Ожидание..." : "Оплатить TON"}
+      </button>
     </div>
   );
 }
-
-export default App;
