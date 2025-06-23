@@ -4,46 +4,43 @@ import { TonConnectButton, TonConnectUIProvider } from "@tonconnect/ui-react";
 const TON_ADDRESS = "UQAEbqdLmHY-gxbUG9eqeldLX8yQDjUDOo1R5NHYjlpIlGet";
 const COIN_RATE = 50; // 50 монет за 0.1 TON
 
+// Конфигурация TonConnect
+const manifestUrl = "https://botcasino.vercel.app/tonconnect-manifest.json";
+
 export default function App() {
   const [amount, setAmount] = useState(0);
   const [tgUser, setTgUser] = useState(null);
   const [walletConnected, setWalletConnected] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Инициализация Telegram WebApp
     const initTelegram = () => {
-      const tg = window.Telegram?.WebApp;
-      if (tg) {
-        tg.expand(); // Развернуть приложение на весь экран
-        if (tg.initDataUnsafe?.user) {
-          setTgUser(tg.initDataUnsafe.user);
-        } else {
-          console.log("Telegram user data not available");
+      try {
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+          tg.expand();
+          if (tg.initDataUnsafe?.user) {
+            setTgUser(tg.initDataUnsafe.user);
+          }
         }
-      }
-    };
-
-    // Инициализация TonConnect
-    const initTonConnect = async () => {
-      if (window.tonConnectUI) {
-        const connected = await window.tonConnectUI.isConnected();
-        setWalletConnected(connected);
-
-        window.tonConnectUI.onStatusChange((wallet) => {
-          setWalletConnected(!!wallet);
-        });
+      } catch (e) {
+        console.log("Telegram init error:", e);
       }
     };
 
     initTelegram();
-    initTonConnect();
+    setLoading(false);
   }, []);
 
   const handleBuy = async () => {
-    if (!tgUser || !amount) {
-      alert(
-        "Пожалуйста, введите количество монет и убедитесь, что вы вошли через Telegram"
-      );
+    if (!amount || amount <= 0) {
+      alert("Пожалуйста, введите корректное количество монет");
+      return;
+    }
+
+    if (!tgUser) {
+      alert("Пожалуйста, войдите через Telegram");
       return;
     }
 
@@ -51,19 +48,15 @@ export default function App() {
     const nanoTon = Math.floor(tonAmount * 1e9);
 
     try {
-      if (!window.tonConnectUI) {
-        throw new Error("TonConnectUI не инициализирован");
-      }
-
       const transaction = {
-        validUntil: Math.floor(Date.now() / 1000) + 600, // 10 минут
+        validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [
           {
             address: TON_ADDRESS,
             amount: nanoTon.toString(),
             payload: JSON.stringify({
               userId: tgUser.id,
-              username: tgUser.username,
+              username: tgUser.username || "unknown",
             }),
           },
         ],
@@ -78,10 +71,27 @@ export default function App() {
     }
   };
 
+  if (loading) {
+    return <div>Загрузка...</div>;
+  }
+
   return (
     <TonConnectUIProvider
-      manifestUrl="https://botcasino.vercel.app/tonconnect-manifest.json"
-      uiPreferences={{ theme: "dark" }}
+      manifestUrl={manifestUrl}
+      uiPreferences={{
+        theme: "dark",
+        colorsSet: {
+          light: {
+            connectButton: {
+              background: "#0088cc",
+              foreground: "#ffffff",
+            },
+          },
+        },
+      }}
+      actionsConfiguration={{
+        twaReturnUrl: window.Telegram?.WebApp?.openTelegramLink || undefined,
+      }}
     >
       <div
         style={{
@@ -89,15 +99,18 @@ export default function App() {
           maxWidth: 500,
           margin: "0 auto",
           fontFamily: "Arial, sans-serif",
+          backgroundColor: "#f5f5f5",
+          minHeight: "100vh",
         }}
       >
-        <h2 style={{ textAlign: "center" }}>Купить монеты</h2>
+        <h2 style={{ textAlign: "center", color: "#333" }}>Купить монеты</h2>
 
-        {tgUser && (
+        {tgUser ? (
           <div style={{ marginBottom: 15 }}>
             <p>Привет, {tgUser.first_name || "пользователь"}!</p>
-            <small>ID: {tgUser.id}</small>
           </div>
+        ) : (
+          <p style={{ color: "red" }}>Войдите через Telegram</p>
         )}
 
         <div style={{ marginBottom: 15 }}>
@@ -106,6 +119,8 @@ export default function App() {
             placeholder="Сколько монет?"
             value={amount}
             onChange={(e) => setAmount(Number(e.target.value))}
+            min="0"
+            step="1"
             style={{
               padding: 10,
               width: "100%",
@@ -115,9 +130,11 @@ export default function App() {
           />
         </div>
 
-        <div style={{ marginBottom: 15 }}>
-          <p>К оплате: {(amount / COIN_RATE).toFixed(4)} TON</p>
-        </div>
+        {amount > 0 && (
+          <div style={{ marginBottom: 15 }}>
+            <p>К оплате: {(amount / COIN_RATE).toFixed(4)} TON</p>
+          </div>
+        )}
 
         <div
           style={{
@@ -128,31 +145,35 @@ export default function App() {
           }}
         >
           {walletConnected ? (
-            <p>Кошелек подключен!</p>
+            <p>Кошелек подключен</p>
           ) : (
-            <p>Пожалуйста, подключите кошелек</p>
+            <p>Подключите кошелек для оплаты</p>
           )}
         </div>
 
-        <div style={{ marginBottom: 15 }}>
-          <TonConnectButton
-            className="ton-connect-button"
-            onConnect={() => setWalletConnected(true)}
-            onDisconnect={() => setWalletConnected(false)}
-          />
+        <div
+          style={{
+            marginBottom: 15,
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          <TonConnectButton style={{ width: "100%" }} />
         </div>
 
         <button
           onClick={handleBuy}
-          disabled={!walletConnected || !amount}
+          disabled={!walletConnected || !amount || amount <= 0}
           style={{
             padding: "10px 20px",
             width: "100%",
-            background: walletConnected && amount ? "#0088cc" : "#ccc",
+            background: walletConnected && amount > 0 ? "#0088cc" : "#ccc",
             color: "white",
             border: "none",
             borderRadius: 5,
-            cursor: walletConnected && amount ? "pointer" : "not-allowed",
+            cursor: walletConnected && amount > 0 ? "pointer" : "not-allowed",
+            fontSize: 16,
+            fontWeight: "bold",
           }}
         >
           Оплатить
