@@ -1,107 +1,65 @@
 import { useEffect, useState } from "react";
-import { TonConnect } from "@tonconnect/sdk";
+import { TonConnectButton, TonConnectUIProvider } from "@tonconnect/ui-react";
 
-// Инициализация TonConnect
-const connector = new TonConnect();
+const TON_ADDRESS = "UQDNqYE7mTZnTRKdyZuu5ITXVJEnPt4co-kSqBNZ_oHZn1Q7";
+const COIN_RATE = 50; // 50 монет за 0.1 TON
 
 export default function App() {
-  const [user, setUser] = useState(null);
-  const [connected, setConnected] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [coinAmount, setCoinAmount] = useState(0);
-
-  const TON_ADDRESS = "UQDNqYE7mTZnTRKdyZuu5ITXVJEnPt4co-kSqBNZ_oHZn1Q7";
-  const COIN_RATE = 50; // 50 coins per 0.1 TON
-
-  // Обработка изменения количества монет для покупки
-  const handleAmountChange = (e) => {
-    setCoinAmount(e.target.value);
-  };
-
-  // Конвертация введённого количества монет в TON
-  const calculatePrice = () => {
-    return (coinAmount / COIN_RATE) * 0.1;
-  };
+  const [amount, setAmount] = useState(0);
+  const [tgUser, setTgUser] = useState(null);
 
   useEffect(() => {
-    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-    if (tgUser) {
-      setUser(tgUser);
-    } else {
-      console.error("Не удалось получить данные о пользователе.");
+    const tg = window.Telegram?.WebApp;
+    tg?.ready();
+    if (tg?.initDataUnsafe?.user) {
+      setTgUser(tg.initDataUnsafe.user);
     }
-
-    window.Telegram.WebApp.ready();
-
-    connector.restoreConnection().then(() => {
-      setConnected(connector.connected);
-    });
-
-    connector.onStatusChange((wallet) => {
-      setConnected(wallet !== null);
-    });
   }, []);
 
   const handleBuy = async () => {
-    try {
-      setLoading(true);
+    if (!tgUser || !amount) {
+      alert("Введите число и зайдите через Telegram");
+      return;
+    }
 
-      // Подключаем кошелек
-      await connector.connect();
+    const nanoTon = Math.floor((amount / COIN_RATE) * 1e9);
 
-      const tx = {
+    window.tonConnectUI
+      .sendTransaction({
         validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [
           {
             address: TON_ADDRESS,
-            amount: (coinAmount / COIN_RATE) * 10 ** 9, // переводим в нанотоны
-            payload: `uid:${user.id}`,
+            amount: nanoTon.toString(),
+            payload: `uid:${tgUser.id}`,
           },
         ],
-      };
-
-      await connector.sendTransaction(tx);
-      alert("✅ Оплата отправлена. Монеты скоро поступят!");
-    } catch (err) {
-      alert("❌ Ошибка: " + err.message);
-    } finally {
-      setLoading(false);
-    }
+      })
+      .catch((err) => alert("Ошибка: " + err.message));
   };
 
   return (
-    <div style={{ padding: 20, fontFamily: "sans-serif", textAlign: "center" }}>
-      <h2>Купить монеты</h2>
-      <p>Цена: {calculatePrice().toFixed(4)} TON</p>
-      {user && (
-        <p>
-          Вы: <strong>{user.first_name}</strong> @{user.username}
-        </p>
-      )}
-      <input
-        type="number"
-        value={coinAmount}
-        onChange={handleAmountChange}
-        min="1"
-        max="1000"
-        style={{ padding: "10px", fontSize: "16px" }}
-      />
-      <button
-        onClick={handleBuy}
-        disabled={loading}
-        style={{
-          padding: "10px 20px",
-          fontSize: "16px",
-          background: "#04befe",
-          color: "white",
-          border: "none",
-          borderRadius: "10px",
-          cursor: "pointer",
-          marginTop: 20,
-        }}
-      >
-        {loading ? "Ожидание..." : "Оплатить TON"}
-      </button>
-    </div>
+    <TonConnectUIProvider manifestUrl="/tonconnect-manifest.json">
+      <div style={{ padding: 20 }}>
+        <h2>Купить монеты</h2>
+        {tgUser && (
+          <p>
+            Привет, {tgUser.first_name} @{tgUser.username}
+          </p>
+        )}
+        <input
+          type="number"
+          placeholder="Сколько монет?"
+          value={amount}
+          onChange={(e) => setAmount(Number(e.target.value))}
+        />
+        <p>К оплате: {(amount / COIN_RATE).toFixed(4)} TON</p>
+        <TonConnectButton />
+        <br />
+        <button onClick={handleBuy} style={{ marginTop: 10 }}>
+          Оплатить
+        </button>
+      </div>
+    </TonConnectUIProvider>
   );
 }
