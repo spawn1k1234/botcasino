@@ -3,7 +3,7 @@
   "name": "BotCasino",
   "description": "TON мини-приложение казино",
   "url": "https://botcasino.vercel.app",
-  "icon_url": "https://botcasino.vercel.app/icon.png",
+  "icon_url": "https://botcasino.vercel.app/icon.svg",
   "terms_of_use_url": "https://botcasino.vercel.app/terms",
   "privacy_policy_url": "https://botcasino.vercel.app/privacy",
   "bridge_url": "https://bridge.tonapi.io/bridge",
