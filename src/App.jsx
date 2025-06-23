@@ -10,97 +10,150 @@ export default function App() {
   const [walletConnected, setWalletConnected] = useState(false);
 
   useEffect(() => {
-    const tg = window.Telegram?.WebApp;
-    if (tg) {
-      tg.ready(); // Это может быть ненужно, если WebApp уже готов.
-      if (tg.initDataUnsafe?.user) {
-        setTgUser(tg.initDataUnsafe.user);
-      } else {
-        console.error(
-          "Ошибка: Не удалось получить данные пользователя Telegram."
-        );
-      }
-    }
-
-    // Проверяем, подключен ли кошелек
-    const checkWalletConnection = async () => {
-      if (window.tonConnectUI) {
-        const connected = await window.tonConnectUI.isConnected();
-        setWalletConnected(connected);
+    // Инициализация Telegram WebApp
+    const initTelegram = () => {
+      const tg = window.Telegram?.WebApp;
+      if (tg) {
+        tg.expand(); // Развернуть приложение на весь экран
+        if (tg.initDataUnsafe?.user) {
+          setTgUser(tg.initDataUnsafe.user);
+        } else {
+          console.log("Telegram user data not available");
+        }
       }
     };
 
-    checkWalletConnection();
-  }, []); // Пустой массив, чтобы этот код выполнялся только один раз при загрузке компонента
+    // Инициализация TonConnect
+    const initTonConnect = async () => {
+      if (window.tonConnectUI) {
+        const connected = await window.tonConnectUI.isConnected();
+        setWalletConnected(connected);
+
+        window.tonConnectUI.onStatusChange((wallet) => {
+          setWalletConnected(!!wallet);
+        });
+      }
+    };
+
+    initTelegram();
+    initTonConnect();
+  }, []);
 
   const handleBuy = async () => {
     if (!tgUser || !amount) {
-      alert("Введите число и зайдите через Telegram");
+      alert(
+        "Пожалуйста, введите количество монет и убедитесь, что вы вошли через Telegram"
+      );
       return;
     }
 
-    const nanoTon = Math.floor((amount / COIN_RATE) * 1e9);
+    const tonAmount = amount / COIN_RATE;
+    const nanoTon = Math.floor(tonAmount * 1e9);
 
     try {
-      // Убедитесь, что window.tonConnectUI существует
       if (!window.tonConnectUI) {
-        throw new Error("TonConnectUI не загружен.");
+        throw new Error("TonConnectUI не инициализирован");
       }
 
-      // Отправляем транзакцию
-      await window.tonConnectUI.sendTransaction({
-        validUntil: Math.floor(Date.now() / 1000) + 600,
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 600, // 10 минут
         messages: [
           {
             address: TON_ADDRESS,
             amount: nanoTon.toString(),
-            payload: `uid:${tgUser.id}`,
+            payload: JSON.stringify({
+              userId: tgUser.id,
+              username: tgUser.username,
+            }),
           },
         ],
-      });
+      };
 
+      const result = await window.tonConnectUI.sendTransaction(transaction);
+      console.log("Transaction result:", result);
       alert("Транзакция успешно отправлена!");
     } catch (err) {
-      console.error("Ошибка при отправке транзакции:", err);
-      alert("Ошибка: " + err.message);
+      console.error("Transaction error:", err);
+      alert(`Ошибка: ${err.message}`);
     }
   };
 
   return (
-    <TonConnectUIProvider manifestUrl="https://botcasino.vercel.app/tonconnect-manifest.json">
-      <div style={{ padding: 20 }}>
-        <h2>Купить монеты</h2>
+    <TonConnectUIProvider
+      manifestUrl="https://botcasino.vercel.app/tonconnect-manifest.json"
+      uiPreferences={{ theme: "dark" }}
+    >
+      <div
+        style={{
+          padding: 20,
+          maxWidth: 500,
+          margin: "0 auto",
+          fontFamily: "Arial, sans-serif",
+        }}
+      >
+        <h2 style={{ textAlign: "center" }}>Купить монеты</h2>
+
         {tgUser && (
-          <p>
-            Привет, {tgUser.first_name} @{tgUser.username}
-          </p>
-        )}
-        <input
-          type="number"
-          placeholder="Сколько монет?"
-          value={amount}
-          onChange={(e) => setAmount(Number(e.target.value))}
-        />
-        <p>К оплате: {(amount / COIN_RATE).toFixed(4)} TON</p>
-
-        {walletConnected ? (
-          <p>Кошелек подключен!</p>
-        ) : (
-          <p>Кошелек не подключен. Пожалуйста, подключите его.</p>
+          <div style={{ marginBottom: 15 }}>
+            <p>Привет, {tgUser.first_name || "пользователь"}!</p>
+            <small>ID: {tgUser.id}</small>
+          </div>
         )}
 
-        {/* Кнопка подключения кошелька */}
-        <TonConnectButton
-          onConnect={() => setWalletConnected(true)}
-          onDisconnect={() => setWalletConnected(false)}
-        />
+        <div style={{ marginBottom: 15 }}>
+          <input
+            type="number"
+            placeholder="Сколько монет?"
+            value={amount}
+            onChange={(e) => setAmount(Number(e.target.value))}
+            style={{
+              padding: 10,
+              width: "100%",
+              borderRadius: 5,
+              border: "1px solid #ccc",
+            }}
+          />
+        </div>
 
-        <br />
-        {/* Кнопка для выполнения оплаты */}
+        <div style={{ marginBottom: 15 }}>
+          <p>К оплате: {(amount / COIN_RATE).toFixed(4)} TON</p>
+        </div>
+
+        <div
+          style={{
+            marginBottom: 15,
+            padding: 10,
+            background: walletConnected ? "#e6f7e6" : "#ffe6e6",
+            borderRadius: 5,
+          }}
+        >
+          {walletConnected ? (
+            <p>Кошелек подключен!</p>
+          ) : (
+            <p>Пожалуйста, подключите кошелек</p>
+          )}
+        </div>
+
+        <div style={{ marginBottom: 15 }}>
+          <TonConnectButton
+            className="ton-connect-button"
+            onConnect={() => setWalletConnected(true)}
+            onDisconnect={() => setWalletConnected(false)}
+          />
+        </div>
+
         <button
           onClick={handleBuy}
-          style={{ marginTop: 10 }}
-          disabled={!walletConnected}
+          disabled={!walletConnected || !amount}
+          style={{
+            padding: "10px 20px",
+            width: "100%",
+            background: walletConnected && amount ? "#0088cc" : "#ccc",
+            color: "white",
+            border: "none",
+            borderRadius: 5,
+            cursor: walletConnected && amount ? "pointer" : "not-allowed",
+          }}
         >
           Оплатить
         </button>
