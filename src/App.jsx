@@ -90,7 +90,10 @@ export default function App() {
         )}
 
         {/* Кнопка подключения кошелька */}
-        <TonConnectButton />
+        <TonConnectButton
+          onConnect={() => setWalletConnected(true)}
+          onDisconnect={() => setWalletConnected(false)}
+        />
 
         <br />
         {/* Кнопка для выполнения оплаты */}
